@@ -1,0 +1,32 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+  body { background: #05050f; color: #e2e4f0; }
+  h1,h2,h3,h4,h5,h6 { font-family: 'Syne', sans-serif; letter-spacing: -0.02em; }
+  ::selection { background: rgba(108,92,231,.3); color: #fff; }
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: #0a0a1f; }
+  ::-webkit-scrollbar-thumb { background: #2a2a6a; border-radius: 2px; }
+}
+
+@layer components {
+  .card { @apply bg-navy-800 border border-white/10 rounded-2xl; }
+  .btn-primary { @apply bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-full px-5 py-2.5 text-sm transition-all hover:-translate-y-px hover:shadow-lg hover:shadow-brand-500/30 disabled:opacity-50 disabled:pointer-events-none; }
+  .btn-outline { @apply border border-white/15 hover:border-white/30 text-slate-300 hover:text-white font-medium rounded-full px-5 py-2.5 text-sm transition-all hover:bg-white/5; }
+  .btn-ghost  { @apply text-brand-400 hover:text-brand-300 font-medium text-sm transition-colors hover:bg-brand-500/10 px-3 py-2 rounded-xl; }
+  .input { @apply w-full bg-navy-800 border border-white/10 rounded-xl px-4 py-3 text-sm text-slate-200 placeholder-slate-600 outline-none transition-all focus:border-brand-500/60 focus:ring-1 focus:ring-brand-500/30; }
+  .label { @apply block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide; }
+  .badge { @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border; }
+  .badge-brand { @apply badge bg-brand-500/15 text-brand-400 border-brand-500/30; }
+  .badge-gold  { @apply badge bg-yellow-500/15 text-yellow-400 border-yellow-500/30; }
+  .badge-green { @apply badge bg-emerald-500/15 text-emerald-400 border-emerald-500/30; }
+  .badge-red   { @apply badge bg-red-500/15 text-red-400 border-red-500/30; }
+  .section-title { @apply font-display font-bold text-white text-xl mb-1; }
+  .section-sub   { @apply text-sm text-slate-500; }
+}

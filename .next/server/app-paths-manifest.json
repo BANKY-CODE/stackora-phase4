@@ -1,0 +1,13 @@
+{
+  "/dashboard/page": "app/dashboard/page.js",
+  "/dashboard/analytics/page": "app/dashboard/analytics/page.js",
+  "/dashboard/community/page": "app/dashboard/community/page.js",
+  "/login/page": "app/login/page.js",
+  "/dashboard/wallet/page": "app/dashboard/wallet/page.js",
+  "/dashboard/wallet/withdraw/page": "app/dashboard/wallet/withdraw/page.js",
+  "/dashboard/wallet/fund/page": "app/dashboard/wallet/fund/page.js",
+  "/dashboard/wallet/send/page": "app/dashboard/wallet/send/page.js",
+  "/dashboard/wallet/airtime/page": "app/dashboard/wallet/airtime/page.js",
+  "/dashboard/wallet/transactions/page": "app/dashboard/wallet/transactions/page.js",
+  "/dashboard/wallet/bills/page": "app/dashboard/wallet/bills/page.js"
+}
