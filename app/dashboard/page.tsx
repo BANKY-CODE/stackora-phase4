@@ -1,10 +1,12 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import UserCard from '@/components/dashboard/UserCard';
 import ActivityFeed from '@/components/dashboard/ActivityFeed';
 import QuickActions from '@/components/dashboard/QuickActions';
 import { useAuth } from '@/context/AuthContext';
+import { walletApi } from '@/lib/api';
 
 function StatCard({ label, value, change, up, icon, color }: {
   label: string; value: string; change: string; up: boolean; icon: string; color: string;
@@ -107,6 +109,18 @@ function VendorView() {
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const [walletBalance, setWalletBalance] = useState<string>('₦0');
+
+  useEffect(() => {
+    walletApi.getBalance()
+      .then(res => {
+        const naira = res.data.balance ?? 0;
+        setWalletBalance('₦' + naira.toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 2 }));
+      })
+      .catch(() => {
+        // If it fails (e.g. not logged in yet), leave the default ₦0
+      });
+  }, []);
 
   return (
     <DashboardLayout>
@@ -133,7 +147,7 @@ export default function DashboardPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard label="Wallet Balance"    value="₦0"    change="0%" up={true}  icon="💳" color="bg-yellow-500/15" />
+          <StatCard label="Wallet Balance"    value={walletBalance} change="0%" up={true}  icon="💳" color="bg-yellow-500/15" />
           <StatCard label="Courses Enrolled"  value="0"     change="0"  up={true}  icon="🛡️" color="bg-brand-500/15" />
           <StatCard label="Referral Earned"   value="₦0"    change="0%" up={true}  icon="👥" color="bg-teal-500/15"   />
           <StatCard label="Marketplace Sales" value="0"     change="0"  up={true}  icon="🛒" color="bg-emerald-500/15" />
