@@ -122,3 +122,34 @@ export const usersApi = {
 
   getProfile: () => apiFetch<{ data: { user: import('@/types').User } }>('/users/me/profile'),
 };
+
+// ── Wallet API ─────────────────────────────────────────────────
+export const walletApi = {
+  getBalance: () =>
+    apiFetch<{ data: { balance: number; balanceKobo: number; currency: string; isFrozen: boolean } }>(
+      '/wallet/balance',
+    ),
+
+  getTransactions: (page = 1, limit = 20) =>
+    apiFetch<{
+      data: Array<{
+        id: string;
+        type: string;
+        direction: string;
+        amountKobo: number;
+        amountNaira: number;
+        balanceAfterNaira: number | null;
+        status: string;
+        reference: string;
+        description: string;
+        createdAt: string;
+      }>;
+      meta: { total: number; page: number; limit: number };
+    }>(`/wallet/transactions?page=${page}&limit=${limit}`),
+
+  transfer: (recipientUsername: string, amount: number, note?: string) =>
+    apiFetch<{ data: { reference: string; amountNaira: number; recipient: string; balanceAfterNaira: number } }>(
+      '/wallet/transfer',
+      { method: 'POST', body: JSON.stringify({ recipientUsername, amount, note }) },
+    ),
+};
