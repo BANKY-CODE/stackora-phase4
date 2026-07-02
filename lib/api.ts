@@ -40,7 +40,6 @@ async function apiFetch<T>(
 
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
 
-  // Auto-refresh on 401
   if (res.status === 401 && withAuth) {
     const refreshed = await tryRefresh();
     if (refreshed) {
@@ -126,7 +125,7 @@ export const usersApi = {
 // ── Wallet API ─────────────────────────────────────────────────
 export const walletApi = {
   getBalance: () =>
-    apiFetch<{ data: { balance: number; balanceKobo: number; currency: string; isFrozen: boolean } }>(
+    apiFetch<{ data: { balance: number; balanceKobo: number; currency: string; isFrozen: boolean; accountNumber: string | null } }>(
       '/wallet/balance',
     ),
 
@@ -147,9 +146,14 @@ export const walletApi = {
       meta: { total: number; page: number; limit: number };
     }>(`/wallet/transactions?page=${page}&limit=${limit}`),
 
-  transfer: (recipientUsername: string, amount: number, note?: string) =>
-    apiFetch<{ data: { reference: string; amountNaira: number; recipient: string; balanceAfterNaira: number } }>(
+  resolveAccount: (accountNumber: string) =>
+    apiFetch<{ data: { accountNumber: string; name: string; username: string } }>(
+      `/wallet/resolve/${accountNumber}`,
+    ),
+
+  transfer: (recipientAccountNumber: string, amount: number, note?: string) =>
+    apiFetch<{ data: { reference: string; amountNaira: number; recipient: string; recipientAccountNumber: string; balanceAfterNaira: number } }>(
       '/wallet/transfer',
-      { method: 'POST', body: JSON.stringify({ recipientUsername, amount, note }) },
+      { method: 'POST', body: JSON.stringify({ recipientAccountNumber, amount, note }) },
     ),
 };
