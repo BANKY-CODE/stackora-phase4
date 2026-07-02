@@ -1,30 +1,30 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowDownCircle, ArrowUpCircle, Search, Filter, Download, ChevronRight, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowDownCircle, ArrowUpCircle, Search, Download, ChevronRight, X } from "lucide-react";
+import { walletApi } from "@/lib/api";
 
-const allTransactions = [
-  { id: "TXN001", type: "credit", desc: "Wallet Funding via Card", amount: 50000, date: "2024-01-15", time: "14:23", status: "success", category: "funding", ref: "STK1705329780" },
-  { id: "TXN002", type: "debit", desc: "Transfer to Emeka Obi", amount: 15000, date: "2024-01-15", time: "12:05", status: "success", category: "transfer", ref: "STK1705321100" },
-  { id: "TXN003", type: "debit", desc: "MTN Airtime", amount: 2000, date: "2024-01-15", time: "09:30", status: "success", category: "airtime", ref: "STK1705311000" },
-  { id: "TXN004", type: "debit", desc: "EKEDC Electricity", amount: 8500, date: "2024-01-14", time: "18:45", status: "success", category: "bills", ref: "STK1705244700" },
-  { id: "TXN005", type: "credit", desc: "Payment Received from Amaka", amount: 25000, date: "2024-01-14", time: "11:20", status: "success", category: "transfer", ref: "STK1705228200" },
-  { id: "TXN006", type: "debit", desc: "Airtel Data Bundle 5GB", amount: 3500, date: "2024-01-13", time: "16:00", status: "success", category: "data", ref: "STK1705143600" },
-  { id: "TXN007", type: "debit", desc: "DSTV Premium", amount: 24500, date: "2024-01-13", time: "10:15", status: "success", category: "bills", ref: "STK1705122900" },
-  { id: "TXN008", type: "credit", desc: "Wallet Funding via Transfer", amount: 100000, date: "2024-01-12", time: "09:00", status: "success", category: "funding", ref: "STK1705054400" },
-  { id: "TXN009", type: "debit", desc: "Withdrawal to GTBank", amount: 30000, date: "2024-01-11", time: "13:30", status: "success", category: "withdrawal", ref: "STK1704979800" },
-  { id: "TXN010", type: "debit", desc: "Glo Airtime", amount: 500, date: "2024-01-11", time: "08:00", status: "failed", category: "airtime", ref: "STK1704952800" },
-  { id: "TXN011", type: "debit", desc: "Transfer to Tunde Adeyemi", amount: 7500, date: "2024-01-10", time: "17:45", status: "success", category: "transfer", ref: "STK1704908700" },
-  { id: "TXN012", type: "credit", desc: "Reversal - Failed Txn", amount: 500, date: "2024-01-10", time: "08:30", status: "success", category: "reversal", ref: "STK1704876600" },
-];
+type Txn = {
+  id: string;
+  type: string;        // credit | debit  (derived from direction)
+  desc: string;
+  amount: number;      // naira
+  date: string;        // YYYY-MM-DD
+  time: string;        // HH:MM
+  status: string;
+  category: string;
+  ref: string;
+};
 
 const categoryColors: Record<string, string> = {
   funding: "text-emerald-400 bg-emerald-400/10",
+  fund: "text-emerald-400 bg-emerald-400/10",
   transfer: "text-blue-400 bg-blue-400/10",
   airtime: "text-orange-400 bg-orange-400/10",
   data: "text-purple-400 bg-purple-400/10",
   bills: "text-pink-400 bg-pink-400/10",
   withdrawal: "text-red-400 bg-red-400/10",
+  withdraw: "text-red-400 bg-red-400/10",
   reversal: "text-yellow-400 bg-yellow-400/10",
 };
 
@@ -33,22 +33,49 @@ const filterOptions = ["All", "Credit", "Debit", "Funding", "Transfer", "Bills",
 export default function TransactionHistoryPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
-  const [selected, setSelected] = useState<typeof allTransactions[0] | null>(null);
+  const [selected, setSelected] = useState<Txn | null>(null);
+  const [allTransactions, setAllTransactions] = useState<Txn[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    walletApi.getTransactions(1, 100)
+      .then(res => {
+        const mapped: Txn[] = (res.data || []).map((r) => {
+          const d = new Date(r.createdAt);
+          return {
+            id: r.id,
+            type: r.direction === "credit" ? "credit" : "debit",
+            desc: r.description || (r.type ? r.type.charAt(0).toUpperCase() + r.type.slice(1) : "Transaction"),
+            amount: r.amountNaira,
+            date: d.toISOString().split("T")[0],
+            time: d.toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit", hour12: false }),
+            status: r.status === "success" ? "success" : r.status,
+            category: (r.type || "transfer").toLowerCase(),
+            ref: r.reference,
+          };
+        });
+        setAllTransactions(mapped);
+      })
+      .catch(err => setError(err.message || "Could not load transactions"))
+      .finally(() => setLoading(false));
+  }, []);
 
   const filtered = allTransactions.filter(t => {
     const matchSearch = t.desc.toLowerCase().includes(search.toLowerCase()) || t.ref.toLowerCase().includes(search.toLowerCase());
     const matchFilter = filter === "All" ||
       (filter === "Credit" && t.type === "credit") ||
       (filter === "Debit" && t.type === "debit") ||
-      t.category.toLowerCase() === filter.toLowerCase();
+      t.category.toLowerCase() === filter.toLowerCase() ||
+      (filter === "Funding" && (t.category === "fund" || t.category === "funding")) ||
+      (filter === "Withdrawal" && (t.category === "withdraw" || t.category === "withdrawal"));
     return matchSearch && matchFilter;
   });
 
   const totalCredit = filtered.filter(t => t.type === "credit" && t.status === "success").reduce((a, t) => a + t.amount, 0);
   const totalDebit = filtered.filter(t => t.type === "debit" && t.status === "success").reduce((a, t) => a + t.amount, 0);
 
-  // Group by date
-  const grouped = filtered.reduce<Record<string, typeof allTransactions>>((acc, t) => {
+  const grouped = filtered.reduce<Record<string, Txn[]>>((acc, t) => {
     const key = t.date;
     if (!acc[key]) acc[key] = [];
     acc[key].push(t);
@@ -119,9 +146,17 @@ export default function TransactionHistoryPage() {
       </div>
 
       {/* Transaction list */}
-      {Object.keys(grouped).length === 0 ? (
+      {loading ? (
         <div className="text-center py-16">
-          <p className="text-gray-500">No transactions found</p>
+          <p className="text-gray-500">Loading transactions…</p>
+        </div>
+      ) : error ? (
+        <div className="text-center py-16">
+          <p className="text-red-400">{error}</p>
+        </div>
+      ) : Object.keys(grouped).length === 0 ? (
+        <div className="text-center py-16">
+          <p className="text-gray-500">No transactions yet</p>
         </div>
       ) : (
         <div className="space-y-6">
