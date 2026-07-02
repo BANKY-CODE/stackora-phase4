@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowUpCircle, Search, User, Check, ChevronRight } from "lucide-react";
+import { ArrowUpCircle, Search, User, Check } from "lucide-react";
 import { walletApi } from "@/lib/api";
 
 type Step = "recipient" | "amount" | "confirm" | "success";
 
 export default function SendMoneyPage() {
   const [step, setStep] = useState<Step>("recipient");
-  const [username, setUsername] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [recipientName, setRecipientName] = useState("");
   const [amount, setAmount] = useState("");
   const [narration, setNarration] = useState("");
   const [resolving, setResolving] = useState(false);
@@ -16,53 +17,55 @@ export default function SendMoneyPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
+  const [myAccount, setMyAccount] = useState<string | null>(null);
   const [txnRef, setTxnRef] = useState("");
 
-  // Load real balance
   useEffect(() => {
     walletApi.getBalance()
-      .then(res => setBalance(res.data.balance ?? 0))
-      .catch(() => setBalance(null));
+      .then(res => { setBalance(res.data.balance ?? 0); setMyAccount(res.data.accountNumber); })
+      .catch(() => {});
   }, []);
 
-  const cleanUsername = username.trim().replace(/^@/, "");
-  const initials = cleanUsername ? cleanUsername.slice(0, 2).toUpperCase() : "?";
-
-  // "Verify" = confirm the username is entered (real existence is checked by the backend on send)
-  const handleVerify = async () => {
+  const handleResolve = async () => {
     setError(null);
-    if (!cleanUsername) return;
+    if (accountNumber.length !== 10) return;
     setResolving(true);
-    // brief pause for UX; the real check happens server-side at send time
-    await new Promise(r => setTimeout(r, 400));
-    setResolved(true);
-    setResolving(false);
+    try {
+      const res = await walletApi.resolveAccount(accountNumber);
+      setRecipientName(res.data.name);
+      setResolved(true);
+    } catch (err: any) {
+      setError(err.message || "Account number not found");
+      setResolved(false);
+      setRecipientName("");
+    } finally {
+      setResolving(false);
+    }
   };
 
   const handleSend = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await walletApi.transfer(cleanUsername, parseFloat(amount), narration || undefined);
+      const res = await walletApi.transfer(accountNumber, parseFloat(amount), narration || undefined);
       setTxnRef(res.data.reference);
       setBalance(res.data.balanceAfterNaira);
       setStep("success");
     } catch (err: any) {
       setError(err.message || "Transfer failed");
-      // If the backend says recipient not found, send them back to fix the username
-      if ((err.message || "").toLowerCase().includes("recipient")) {
-        setStep("recipient");
-        setResolved(false);
-      }
     } finally {
       setLoading(false);
     }
   };
 
   const resetAll = () => {
-    setStep("recipient"); setAmount(""); setUsername(""); setNarration("");
-    setResolved(false); setError(null); setTxnRef("");
+    setStep("recipient"); setAmount(""); setAccountNumber(""); setNarration("");
+    setResolved(false); setRecipientName(""); setError(null); setTxnRef("");
   };
+
+  const initials = recipientName
+    ? recipientName.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()
+    : "?";
 
   if (step === "success") {
     return (
@@ -74,9 +77,10 @@ export default function SendMoneyPage() {
         <p className="text-gray-400 mb-2">
           You sent <span className="text-white font-semibold">₦{parseFloat(amount).toLocaleString()}</span> to
         </p>
-        <p className="text-[#00D4AA] font-semibold text-lg mb-8">@{cleanUsername}</p>
+        <p className="text-[#00D4AA] font-semibold text-lg mb-8">{recipientName}</p>
         <div className="bg-[#111827] rounded-xl p-4 text-left space-y-3 mb-8 text-sm">
-          <div className="flex justify-between"><span className="text-gray-400">Recipient</span><span className="text-white">@{cleanUsername}</span></div>
+          <div className="flex justify-between"><span className="text-gray-400">Recipient</span><span className="text-white">{recipientName}</span></div>
+          <div className="flex justify-between"><span className="text-gray-400">Account</span><span className="text-white font-mono">{accountNumber}</span></div>
           <div className="flex justify-between"><span className="text-gray-400">Amount</span><span className="text-emerald-400 font-semibold">₦{parseFloat(amount).toLocaleString()}</span></div>
           {balance !== null && (
             <div className="flex justify-between"><span className="text-gray-400">New Balance</span><span className="text-white">₦{balance.toLocaleString()}</span></div>
@@ -97,7 +101,12 @@ export default function SendMoneyPage() {
     <div className="max-w-lg mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-white">Send Money</h1>
-        <p className="text-gray-400 text-sm mt-1">Instantly send to another Stackora user by username</p>
+        <p className="text-gray-400 text-sm mt-1">Send instantly to another Stackora account number</p>
+        {myAccount && (
+          <p className="text-gray-500 text-xs mt-2">
+            Your account number: <span className="text-[#00D4AA] font-mono font-semibold">{myAccount}</span>
+          </p>
+        )}
       </div>
 
       {/* Progress Steps */}
@@ -120,32 +129,31 @@ export default function SendMoneyPage() {
         </div>
       )}
 
-      {/* Step 1: Recipient */}
+      {/* Step 1: Recipient account number */}
       {step === "recipient" && (
         <div className="space-y-5">
           <div>
-            <label className="text-sm font-medium text-gray-300 block mb-1.5">Recipient Username</label>
+            <label className="text-sm font-medium text-gray-300 block mb-1.5">Recipient Account Number</label>
             <div className="flex gap-2">
-              <div className="flex-1 relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">@</span>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={e => { setUsername(e.target.value); setResolved(false); setError(null); }}
-                  placeholder="username"
-                  className="w-full bg-[#111827] border border-white/10 rounded-xl pl-9 pr-4 py-3.5 text-white placeholder-gray-600 focus:outline-none focus:border-[#00D4AA] transition-colors"
-                />
-              </div>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={10}
+                value={accountNumber}
+                onChange={e => { setAccountNumber(e.target.value.replace(/\D/g, "")); setResolved(false); setError(null); }}
+                placeholder="10-digit account number"
+                className="flex-1 bg-[#111827] border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-gray-600 focus:outline-none focus:border-[#00D4AA] transition-colors font-mono"
+              />
               <button
-                onClick={handleVerify}
-                disabled={!cleanUsername || resolving}
+                onClick={handleResolve}
+                disabled={accountNumber.length !== 10 || resolving}
                 className="px-4 py-3.5 bg-[#00D4AA]/10 hover:bg-[#00D4AA]/20 text-[#00D4AA] rounded-xl font-medium text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {resolving ? <div className="w-4 h-4 border-2 border-[#00D4AA]/30 border-t-[#00D4AA] rounded-full animate-spin" /> : <Search size={16} />}
-                Check
+                Verify
               </button>
             </div>
-            <p className="text-gray-500 text-xs mt-1.5">Enter the @username of the person you want to pay.</p>
+            <p className="text-gray-500 text-xs mt-1.5">Enter the recipient's 10-digit Stackora account number.</p>
           </div>
 
           {resolved && (
@@ -154,8 +162,8 @@ export default function SendMoneyPage() {
                 {initials}
               </div>
               <div>
-                <p className="text-white font-medium text-sm">@{cleanUsername}</p>
-                <p className="text-gray-400 text-xs">Stackora user</p>
+                <p className="text-white font-medium text-sm">{recipientName}</p>
+                <p className="text-gray-400 text-xs font-mono">{accountNumber}</p>
               </div>
               <Check size={16} className="text-emerald-400 ml-auto" />
             </div>
@@ -179,8 +187,8 @@ export default function SendMoneyPage() {
               {initials}
             </div>
             <div>
-              <p className="text-white font-medium">@{cleanUsername}</p>
-              <p className="text-gray-500 text-xs">Stackora user</p>
+              <p className="text-white font-medium">{recipientName}</p>
+              <p className="text-gray-500 text-xs font-mono">{accountNumber}</p>
             </div>
           </div>
 
@@ -237,7 +245,8 @@ export default function SendMoneyPage() {
           <div className="bg-[#111827] border border-white/5 rounded-2xl p-5 space-y-3">
             <h3 className="text-white font-semibold">Transfer Summary</h3>
             {[
-              { label: "To", value: `@${cleanUsername}` },
+              { label: "To", value: recipientName },
+              { label: "Account", value: accountNumber },
               { label: "Amount", value: `₦${parseFloat(amount).toLocaleString()}`, highlight: true },
               { label: "Fee", value: "₦0.00" },
               { label: "Total", value: `₦${parseFloat(amount).toLocaleString()}`, bold: true },
