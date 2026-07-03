@@ -2,49 +2,50 @@
 
 import { useAuth } from '@/context/AuthContext';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import clsx from 'clsx';
+import { marketplaceApi } from '@/lib/api';
 
 interface NavItem {
-  label:  string;
-  href:   string;
-  icon:   string;
+  label: string;
+  href: string;
+  icon: string;
   badge?: string | number;
   roles?: string[];
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard',    href: '/dashboard',               icon: '⊞' },
-  { label: 'Academy',      href: '/dashboard/academy',       icon: '🛡️' },
-  { label: 'Tools Hub',    href: '/dashboard/tools',         icon: '🔗' },
-  { label: 'Marketplace',  href: '/dashboard/marketplace',   icon: '🛒' },
-  { label: 'Community',    href: '/dashboard/community',     icon: '👥', badge: 3 },
-  { label: 'Wallet',       href: '/dashboard/wallet',        icon: '💳' },
+  { label: 'Dashboard',   href: '/dashboard',            icon: '▦' },
+  { label: 'Academy',     href: '/dashboard/academy',    icon: '🛡' },
+  { label: 'Tools Hub',   href: '/dashboard/tools',      icon: '🔗' },
+  { label: 'Marketplace', href: '/dashboard/marketplace', icon: '🛒' },
+  { label: 'Community',   href: '/dashboard/community',   icon: '👥', badge: 3 },
+  { label: 'Wallet',      href: '/dashboard/wallet',      icon: '💳' },
   { label: 'AI Assistant', href: '/dashboard/ai', icon: '🤖' },
   { label: 'Analytics', href: '/dashboard/analytics', icon: '📊' },
-
 ];
 
 const ADMIN_ITEMS: NavItem[] = [
-  { label: 'Analytics',   href: '/dashboard/analytics',  icon: '📊', roles: ['admin', 'moderator'] },
-  { label: 'Users',       href: '/dashboard/users',      icon: '👤', roles: ['admin'] },
+  { label: 'Course Review', href: '/dashboard/marketplace/review', icon: '🛡', roles: ['admin', 'moderator'] },
+  { label: 'Users',         href: '/dashboard/users',              icon: '👤', roles: ['admin'] },
 ];
 
 const BOTTOM_ITEMS: NavItem[] = [
   { label: 'Notifications', href: '/dashboard/notifications', icon: '🔔', badge: 5 },
-  { label: 'Settings',      href: '/dashboard/settings',      icon: '⚙️' },
+  { label: 'Settings',      href: '/dashboard/settings',      icon: '⚙' },
   { label: 'Profile',       href: '/dashboard/profile',       icon: '👤' },
 ];
 
 interface SidebarProps {
-  isOpen:   boolean;
-  onClose:  () => void;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, logout } = useAuth();
   const pathname = usePathname();
-  const router   = useRouter();
+  const router = useRouter();
+  const [pendingCount, setPendingCount] = useState<number>(0);
 
   const handleLogout = async () => {
     await logout();
@@ -56,6 +57,22 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const visibleAdminItems = ADMIN_ITEMS.filter(item =>
     !item.roles || item.roles.some(r => user?.roles.includes(r as any))
+  );
+
+  const isAdmin = user?.roles.includes('admin') || user?.roles.includes('moderator');
+
+  useEffect(() => {
+    if (isAdmin) {
+      marketplaceApi.pendingCount()
+        .then(res => setPendingCount(res.data.count))
+        .catch(() => {});
+    }
+  }, [isAdmin]);
+
+  const adminItemsWithBadge = visibleAdminItems.map(item =>
+    item.href === '/dashboard/marketplace/review' && pendingCount > 0
+      ? { ...item, badge: pendingCount }
+      : item
   );
 
   const avatarInitials = user
@@ -109,10 +126,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             <NavLink key={item.href} item={item} active={isActive(item.href)} onClick={() => { router.push(item.href); onClose(); }} />
           ))}
 
-          {visibleAdminItems.length > 0 && (
+          {adminItemsWithBadge.length > 0 && (
             <>
               <div className="px-3 pt-4 mb-2 text-[10px] font-semibold text-slate-600 uppercase tracking-widest">Management</div>
-              {visibleAdminItems.map(item => (
+              {adminItemsWithBadge.map(item => (
                 <NavLink key={item.href} item={item} active={isActive(item.href)} onClick={() => { router.push(item.href); onClose(); }} />
               ))}
             </>
@@ -160,17 +177,16 @@ function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; on
         'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all relative',
         active
           ? 'bg-brand-500/15 text-brand-400'
-          : 'text-slate-400 hover:bg-white/5 hover:text-slate-200',
+          : 'text-slate-400 hover:text-white hover:bg-white/5',
       )}
     >
-      {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-brand-500 rounded-r-full" />}
-      <span className="text-base w-5 flex-shrink-0 text-center">{item.icon}</span>
+      <span className="text-base w-5 text-center">{item.icon}</span>
       <span className="flex-1 text-left">{item.label}</span>
-      {item.badge && (
-        <span className="bg-brand-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+      {item.badge ? (
+        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-brand-500 text-white">
           {item.badge}
         </span>
-      )}
+      ) : null}
     </button>
   );
 }
