@@ -191,7 +191,7 @@ export const marketplaceApi = {
     } }>(`/marketplace/products/${id}`),
 
   createProduct: (data: { title: string; description?: string; category?: string; price: number; coverUrl?: string; contentUrl?: string }) =>
-    apiFetch<{ data: { id: string; title: string } }>(
+    apiFetch<{ data: { id: string; title: string; status: string } }>(
       '/marketplace/products',
       { method: 'POST', body: JSON.stringify(data) },
     ),
@@ -231,6 +231,9 @@ export const marketplaceApi = {
       seller: string | null;
       sellerName: string | null;
     }> }>('/marketplace/pending'),
+
+  pendingCount: () =>
+    apiFetch<{ data: { count: number } }>('/marketplace/pending/count'),
 
   approveProduct: (id: string) =>
     apiFetch<{ data: { id: string; title: string } }>(
