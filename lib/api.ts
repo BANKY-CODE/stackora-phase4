@@ -219,4 +219,28 @@ export const marketplaceApi = {
       `/marketplace/products/${id}/buy`,
       { method: 'POST' },
     ),
+
+  pendingProducts: () =>
+    apiFetch<{ data: Array<{
+      id: string;
+      title: string;
+      description: string | null;
+      category: string;
+      priceNaira: number;
+      contentUrl: string | null;
+      seller: string | null;
+      sellerName: string | null;
+    }> }>('/marketplace/pending'),
+
+  approveProduct: (id: string) =>
+    apiFetch<{ data: { id: string; title: string } }>(
+      `/marketplace/products/${id}/approve`,
+      { method: 'POST' },
+    ),
+
+  rejectProduct: (id: string) =>
+    apiFetch<{ data: { id: string; title: string } }>(
+      `/marketplace/products/${id}/reject`,
+      { method: 'POST' },
+    ),
 };
