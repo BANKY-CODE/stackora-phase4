@@ -29,6 +29,10 @@ export default function MyPurchasesPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const openCourse = (url: string) => {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
@@ -75,14 +79,12 @@ export default function MyPurchasesPage() {
 
                   <div className="mt-4">
                     {p.contentUrl ? (
-                      
-                        href={p.contentUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <button
+                        onClick={() => openCourse(p.contentUrl as string)}
                         className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#00D4AA] hover:bg-[#00BF9A] text-black font-semibold rounded-xl text-sm transition-colors"
                       >
                         <ExternalLink size={15} /> Open Course
-                      </a>
+                      </button>
                     ) : (
                       <span className="inline-block px-4 py-2.5 bg-white/5 text-gray-500 rounded-xl text-sm">
                         No content link provided by seller
