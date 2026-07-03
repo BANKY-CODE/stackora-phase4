@@ -247,3 +247,71 @@ export const marketplaceApi = {
       { method: 'POST' },
     ),
 };
+
+// ── Academy API ────────────────────────────────────────────────
+export const academyApi = {
+  listCourses: () =>
+    apiFetch<{ data: Array<{
+      id: string;
+      title: string;
+      description: string | null;
+      category: string;
+      level: string;
+      priceNaira: number;
+      isFree: boolean;
+      coverUrl: string | null;
+      lessonCount: number;
+      createdAt: string;
+    }> }>('/academy/courses'),
+
+  getCourse: (id: string) =>
+    apiFetch<{ data: {
+      id: string;
+      title: string;
+      description: string | null;
+      category: string;
+      level: string;
+      priceNaira: number;
+      isFree: boolean;
+      coverUrl: string | null;
+      createdAt: string;
+      lessons: Array<{
+        id: string;
+        courseId: string;
+        title: string;
+        videoUrl: string | null;
+        content: string | null;
+        position: number;
+      }>;
+    } }>(`/academy/courses/${id}`),
+
+  createCourse: (data: { title: string; description?: string; category?: string; level?: string; price?: number; coverUrl?: string }) =>
+    apiFetch<{ data: { id: string; title: string } }>(
+      '/academy/courses',
+      { method: 'POST', body: JSON.stringify(data) },
+    ),
+
+  updateCourse: (id: string, data: { title?: string; description?: string; category?: string; level?: string; price?: number; coverUrl?: string }) =>
+    apiFetch<{ data: { id: string; title: string } }>(
+      `/academy/courses/${id}`,
+      { method: 'PUT', body: JSON.stringify(data) },
+    ),
+
+  deleteCourse: (id: string) =>
+    apiFetch<{ data: { deleted: boolean } }>(
+      `/academy/courses/${id}`,
+      { method: 'DELETE' },
+    ),
+
+  addLesson: (courseId: string, data: { title: string; videoUrl?: string; content?: string; position?: number }) =>
+    apiFetch<{ data: { id: string; title: string } }>(
+      `/academy/courses/${courseId}/lessons`,
+      { method: 'POST', body: JSON.stringify(data) },
+    ),
+
+  deleteLesson: (lessonId: string) =>
+    apiFetch<{ data: { deleted: boolean } }>(
+      `/academy/lessons/${lessonId}`,
+      { method: 'DELETE' },
+    ),
+};
