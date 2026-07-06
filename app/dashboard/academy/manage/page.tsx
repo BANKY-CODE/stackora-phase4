@@ -11,14 +11,12 @@ export default function AcademyManagePage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [level, setLevel] = useState('beginner');
   const [price, setPrice] = useState('');
   const [contentUrl, setContentUrl] = useState('');
   const [creating, setCreating] = useState(false);
-
   const [selected, setSelected] = useState<any>(null);
   const [lTitle, setLTitle] = useState('');
   const [lVideo, setLVideo] = useState('');
@@ -33,9 +31,9 @@ export default function AcademyManagePage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, []);
-
-  function load() { loadCourses(); }
+  useEffect(() => {
+    loadCourses();
+  }, []);
 
   const handleCreate = async () => {
     setError(null);
@@ -49,7 +47,11 @@ export default function AcademyManagePage() {
         price: price ? parseFloat(price) : 0,
         contentUrl: contentUrl.trim() || undefined,
       });
-      setTitle(''); setDescription(''); setPrice(''); setLevel('beginner'); setContentUrl('');
+      setTitle('');
+      setDescription('');
+      setPrice('');
+      setLevel('beginner');
+      setContentUrl('');
       loadCourses();
     } catch (err: any) {
       setError(err.message || 'Could not create course');
